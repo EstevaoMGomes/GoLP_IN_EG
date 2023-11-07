@@ -12,6 +12,11 @@ model = pysr.PySRRegressor(
     populations=10,
     binary_operators=["plus", "mult"],
     unary_operators=["exp"],
+    
+    #tempdir="./bin",
+    #temp_equation_file="hall_of_fame.csv",
+    delete_tempfiles=True,
+    equation_file="./ficheiro.csv",
 )
 
 print('Start Fit')
@@ -19,4 +24,4 @@ print('Start Fit')
 model.fit(X, y)
 model.sympy()
 
-print('Finished')
+print(f"Best fit: {model.sympy()}")

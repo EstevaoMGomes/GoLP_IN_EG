@@ -1,7 +1,7 @@
 __pycache__/
 .ipynb_checkpoints/
 
-bin/
+data/
 *.pkl
 *.csv
 *.bkup
