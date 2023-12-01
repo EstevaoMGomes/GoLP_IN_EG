@@ -10,9 +10,9 @@ plt.rcParams['text.usetex'] = True
 
 
 seed = np.array([1,2,3,4])
-n = np.array([100,1000,10000,100000])
+n = np.array([100,1000,10000])
 error = np.array([0,0.01,0.1,1])
-mult = np.array([1,2,4])
+mult = np.array([1,2,3,4])
 
 def gauss(x,x0,sigma):
     np.exp(- (x - x0) ** 2 / (2 * sigma ** 2))/(sigma*np.sqrt(2*np.pi))
@@ -137,10 +137,10 @@ for multval in mult:
     plt.plot(multval,endtime - starttime,'o',color='black')
 
 mdFile.new_line()
-mdFile.new_table(columns=5, rows=len(seed)+1, text=tableregression, text_align='center')
+mdFile.new_table(columns=5, rows=len(mult)+1, text=tableregression, text_align='center')
 plt.xlabel("Multiplication number")
 plt.ylabel("Time (s)")
-plt.title("Time needed to fit the model for different multiplication values of 50 iterations and 20 populations")
+plt.title("Time needed to fit the model for different multiplication values\nof 50 iterations and 20 populations")
 plt.show()
 plt.savefig("data/artifitial/regression/time_mult.png")
 plt.close()
@@ -172,8 +172,9 @@ for ndp in n:
     equation_file=f"data/artifitial/datapoints/{ndp}.csv",)
     
     model.fit(X, y)
-    tabledatapoints.extend([f"{ndp}", f"${model.latex()}$", f"-", f"{endtime - starttime}"])
+    
     endtime = time.time()
+    tabledatapoints.extend([f"{ndp}", f"${model.latex()}$", f"-", f"{endtime - starttime}"])
     plt.plot(ndp,endtime - starttime,'o',color='black')
 
 mdFile.new_line()
