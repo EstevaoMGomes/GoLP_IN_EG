@@ -9,6 +9,7 @@ plt.rcParams['text.usetex'] = True
 
 inputs = pd.read_csv("/home/estevao/GoLP/datasets/inputs.csv", header=None, skiprows=[0])
 inputs.columns = ["F","Ef","v","x","F_x","F_xx","E_x","E_xx","F_u","F_uu"]
+normalizedinputs = (inputs-inputs.mean())
 
 targets = pd.read_csv("/home/estevao/GoLP/datasets/target.csv", header=None)
 
@@ -21,7 +22,7 @@ model = pysr.PySRRegressor(
     equation_file="/home/estevao/GoLP/data/real/twostream.csv",
     )
 
-model.fit(inputs, targets)
+model.fit(normalizedinputs, targets)
 end_time = time.time()
 print(f"Time: {end_time-start_time}")
 for i in range(10):
