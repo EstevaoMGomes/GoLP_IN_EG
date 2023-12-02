@@ -9,7 +9,7 @@ from mdutils.mdutils import MdUtils
 plt.rcParams['text.usetex'] = True
 
 
-seed = np.array([1,2,3,4])
+seed = np.array([1,2,3,4,5,6,7,8,9,10])
 n = np.array([100,1000,10000])
 error = np.array([0,0.01,0.1,1])
 mult = np.array([1,2,3,4])
