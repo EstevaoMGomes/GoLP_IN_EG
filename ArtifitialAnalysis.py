@@ -106,7 +106,7 @@ plt.close()
 
 
 try:
-    os.mkdir("data/artifitial/seed")
+    os.mkdir("data/artifitial/regression")
 except:
     pass
 
