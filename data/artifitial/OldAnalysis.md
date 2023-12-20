@@ -33,7 +33,7 @@ Contents
 # Regression Analysis
   
 
-|20 Iterations|50 Populations|Best Fit|Loss|Time|
+|20 Iterations|50 Populations|Best Fit|Loss|Time [s]|
 | :---: | :---: | :---: | :---: | :---: |
 |x1|x1|$x_{0}^{3} e^{- \left(x_{0} - 1.08\right) \left(x_{0} + e^{x_{0}} - 0.428\right)}$|-|79.01841616630554|
 |x2|x2|$e^{\left(0.774 - x_{0}\right) \left(5.55 x_{0} - 6.81\right)}$|-|327.9216182231903|
@@ -45,9 +45,9 @@ In https://astroautomata.com/PySR/tuning/ :
 
 "If my dataset is more than 1000 points, I either subsample it (low-dimensional and not much noise) or set batching=True (high-dimensional or very noisy, so it needs to evaluate on all the data)."
 
-|Number of Data Points|Best Fit|Loss|Time|
+|Number of Data Points|Best Fit|Loss|Time [s]|
 | :---: | :---: | :---: | :---: |
-|100|$e^{\left(1.23 - x_{0}\right) \left(5.56 x_{0} - 4.30\right)}$|-|ordem de 10|
-|1000|$e^{\left(0.591 - 0.482 x_{0}\right) \left(11.5 x_{0} - 8.90\right)}$|-|ordem de 100|
-|10000|$e^{\left(6.81 - 5.56 x_{0}\right) \left(x_{0} - 0.774\right)}$|-|ordem de 1000|
-|100000|$x_{0} e^{\left(1.15 - x_{0}\right) \left(4.91 x_{0} - 3.14\right)}$|-|cerca de 6000|
+|100|$e^{\left(1.23 - x_{0}\right) \left(5.56 x_{0} - 4.30\right)}$|-|30.106420516967773|
+|1000|$e^{\left(0.591 - 0.482 x_{0}\right) \left(11.5 x_{0} - 8.90\right)}$|-|93.54706931114197|
+|10000|$e^{\left(6.81 - 5.56 x_{0}\right) \left(x_{0} - 0.774\right)}$|-|721.9279661178589|
+|100000|$x_{0} e^{\left(1.15 - x_{0}\right) \left(4.91 x_{0} - 3.14\right)}$|-|6212.1221904330|
