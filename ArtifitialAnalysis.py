@@ -31,27 +31,26 @@ except:
 
 mdFile.new_header(level=1, title='Seed Analysis')
 
-tableseeds= ["Seed", "Complexity", "Loss", "Score" ,"Best Fit", "Time"]
+tableseeds= ["Turbo","Denoise","Seed", "Complexity", "Loss", "Score" ,"Best Fit", "Time"]
 
 for seedval in seed:
-    starttime = time.time()
-    np.random.seed(seedval)
+    np.random.seed(1)
     X = 2 * np.random.rand(1000,2)
     y=np.zeros(1000)
     for index in range(1000):
             y[index] = np.exp(-(X[index,0] - x0) ** 2 / (2 * sigma ** 2))/(sigma*np.sqrt(2*np.pi))*(1 + np.random.uniform(-0.01,0.01))
             #y[index] = gauss(X[index,0],x0,sigma)*(1 + np.random.uniform(-0.01,0.01))
+    np.random.seed(seedval)
     model = pysr.PySRRegressor(
     niterations=50,
     populations=12,
     binary_operators=["+", "*","-", "/"],
     unary_operators=["exp"],
     equation_file=f"data/artifitial/seed/{seedval}.csv",
-    model_selection="score",
-    turbo=True,)
+    model_selection="score",)
 
+    starttime = time.time()
     model.fit(X, y)
-
     endtime = time.time()
 
     maxscore=0
@@ -60,13 +59,61 @@ for seedval in seed:
             maxscore= score
             index = i
 
-    tableseeds.extend([seedval,model.equations_.iloc[index,0], model.equations_.iloc[index,1], model.equations_.iloc[index,2], f"${latex(model.equations_.iloc[index,4])}$", f"{endtime - starttime}"])
+    tableseeds.extend(["False", "False", seedval,model.equations_.iloc[index,0], model.equations_.iloc[index,1], model.equations_.iloc[index,2], f"${latex(model.equations_.iloc[index,4])}$", f"{endtime - starttime}"])
     plt.plot(seedval,endtime - starttime,'o',color='black')
 
+    np.random.seed(seedval)
+    model = pysr.PySRRegressor(
+    niterations=50,
+    populations=12,
+    binary_operators=["+", "*","-", "/"],
+    unary_operators=["exp"],
+    equation_file=f"data/artifitial/seed/{seedval}turbo.csv",
+    model_selection="score",
+    turbo=True,)
+
+    starttime = time.time()
+    model.fit(X, y)
+    endtime = time.time()
+
+    maxscore=0
+    for i, score in enumerate(model.equations_.score):
+        if score > maxscore:
+            maxscore= score
+            index = i
+
+    tableseeds.extend(["True", "False", seedval,model.equations_.iloc[index,0], model.equations_.iloc[index,1], model.equations_.iloc[index,2], f"${latex(model.equations_.iloc[index,4])}$", f"{endtime - starttime}"])
+    plt.plot(seedval,endtime - starttime,'o',color='red',label="Turbo")
+
+    np.random.seed(seedval)
+    model = pysr.PySRRegressor(
+    niterations=50,
+    populations=12,
+    binary_operators=["+", "*","-", "/"],
+    unary_operators=["exp"],
+    equation_file=f"data/artifitial/seed/{seedval}denoise.csv",
+    model_selection="score",
+    turbo=True,)
+
+    starttime = time.time()
+    model.fit(X, y)
+    endtime = time.time()
+
+    maxscore=0
+    for i, score in enumerate(model.equations_.score):
+        if score > maxscore:
+            maxscore= score
+            index = i
+
+    tableseeds.extend(["False", "True", seedval,model.equations_.iloc[index,0], model.equations_.iloc[index,1], model.equations_.iloc[index,2], f"${latex(model.equations_.iloc[index,4])}$", f"{endtime - starttime}"])
+    plt.plot(seedval,endtime - starttime,'o',color='green',label="Denoise")
+
 mdFile.new_line()
-mdFile.new_table(columns=6, rows=len(seed)+1, text=tableseeds, text_align='center')
+mdFile.new_paragraph("The standard parameter used are: 50 iterations, 12 populations, 1000 data points and error 0.01")
+mdFile.new_table(columns=8, rows=(len(seed)+1)*3, text=tableseeds, text_align='center')
 plt.xlabel("Seed number")
 plt.ylabel("Time (s)")
+plt.legend()
 plt.title("Time needed to fit the model for different seed values")
 plt.show()
 plt.savefig("data/artifitial/seed/time_seed.png")
@@ -98,7 +145,7 @@ for errorval in error:
     unary_operators=["exp"],
     equation_file=f"data/artifitial/error/{errorval}.csv",
     model_selection="score",
-    turbo=True,)
+    denoise=True,)
 
     model.fit(X, y)
 
@@ -114,7 +161,7 @@ for errorval in error:
     plt.plot(errorval,endtime - starttime,'o',color='black')
 
 mdFile.new_line()
-mdFile.new_paragraph("The standard parameter used are: 50 iterations, 12 populations, 1000 data points and seed 1")
+mdFile.new_paragraph("The standard parameter used are: 50 iterations, 12 populations, 1000 data points, seed 1 and denoise True")
 mdFile.new_table(columns=6, rows=len(error)+1, text=tableerrors, text_align='center')
 
 plt.xscale('log')

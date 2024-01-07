@@ -46,8 +46,8 @@ for seedval in seed:
     np.random.seed(seedval)
 
     model = pysr.PySRRegressor(
-        niterations=20,
-        populations=50,
+        niterations=50,
+        populations=12,
         binary_operators=["+", "*","-", "/"],
         delete_tempfiles=True,
         equation_file=f"data/real/twostream/seed/{seedval}.csv",
@@ -85,15 +85,15 @@ except:
 
 mdFile.new_header(level=1, title='Regression Analysis')
 
-tableregression= ["20 Iterations", "50 Populations", "Best Fit", "Loss", "Time"]
+tableregression= ["50 Iterations", "12 Populations", "Best Fit", "Loss", "Time"]
 
 for multval in mult:
     starttime = time.time()
     np.random.seed(1)
     
     model = pysr.PySRRegressor(
-        niterations=20*multval,
-        populations=50*multval,
+        niterations=50*multval,
+        populations=12*multval,
         binary_operators=["+", "*","-", "/"],
         delete_tempfiles=True,
         equation_file=f"data/real/twostream/regression/x{multval}.csv",
@@ -109,7 +109,7 @@ mdFile.new_line()
 mdFile.new_table(columns=5, rows=len(mult)+1, text=tableregression, text_align='center')
 plt.xlabel("Multiplication number")
 plt.ylabel("Time (s)")
-plt.title("Time needed to fit the model for different multiplication values\nof 50 iterations and 20 populations")
+plt.title("Time needed to fit the model for different multiplication values\nof 50 iterations and 12 populations")
 plt.show()
 plt.savefig("data/real/twostream/regression/time_mult.png")
 plt.close()
@@ -129,8 +129,8 @@ for ndp in n:
     np.random.seed(1)
     
     model = pysr.PySRRegressor(
-        niterations=20,
-        populations=50,
+        niterations=50,
+        populations=12,
         binary_operators=["+", "*","-", "/"],
         delete_tempfiles=True,
         equation_file=f"data/real/twostream/datapoints/{ndp}.csv",    
@@ -170,15 +170,15 @@ for multval in mult:
         os.mkdir(f"data/real/twostream/seedinvariant/x{multval}")
     except:
         pass
-    mdFile.new_header(level=2, title=f"populations = {50*multval}, iterations = {20*multval}")
+    mdFile.new_header(level=2, title=f"populations = {12*multval}, iterations = {50*multval}")
     tableseeds= ["Seed", "Best Fit", "Complexity", "Loss", "Time"]
     for seedval in seed:
         starttime = time.time()
         np.random.seed(seedval)
 
         model = pysr.PySRRegressor(
-            niterations=20*multval,
-            populations=50*multval,
+            niterations=50*multval,
+            populations=12*multval,
             binary_operators=["+", "*","-", "/"],
             delete_tempfiles=True,
             equation_file=f"data/real/twostream/seedinvariant/x{multval}/{seedval}.csv",
@@ -194,7 +194,7 @@ for multval in mult:
     mdFile.new_table(columns=5, rows=len(seed)+1, text=tableseeds, text_align='center')
     plt.xlabel("Seed number")
     plt.ylabel("Time (s)")
-    plt.title(f"Time needed to fit the model for different seed values\npopulations = {50*multval}, iterations = {20*multval}")
+    plt.title(f"Time needed to fit the model for different seed values\npopulations = {12*multval}, iterations = {50*multval}")
     plt.show()
     plt.savefig(f"data/real/twostream/seedinvariant/x{multval}/time_seed_x{multval}.png")
     plt.close()
