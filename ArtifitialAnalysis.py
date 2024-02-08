@@ -53,6 +53,30 @@ for seedval in seed:
     model.fit(X, y)
     endtime = time.time()
 
+    if seedval == 1:
+        best_idx = model.equations_.query(
+            f"loss < {2 * model.equations_.loss.min()}"
+        ).score.idxmax()
+
+        # Plotting the data
+        fig, ax1 = plt.subplots()
+        ax1.plot(X[:,0], y, label = "$Data$" )
+        ax1.set_xlabel("x")
+        ax1.set_ylabel("y")
+        ax2 = ax1.twinx()
+        ax2.plot(X[:,0], model.predict(X, index=best_idx),'r', label = "$Fit$" , alpha = 0.8)
+        ax2.set_ylabel("")
+        ax2.set_ylim(0,2)
+        plt.title("Artifitial Data Fit")
+        plt.grid(True)
+        fig.legend(loc = (0.75,0.70))
+        fig.tight_layout()
+        plt.savefig("ArtifitialFit.png")
+        plt.close()
+        plt.clf()
+    
+    print(X.iloc[:,0].values)
+
     maxscore=0
     for i, score in enumerate(model.equations_.score):
         if score > maxscore:
@@ -81,6 +105,7 @@ for seedval in seed:
         if score > maxscore:
             maxscore= score
             index = i
+    
 
     tableseeds.extend(["True", "False", seedval,model.equations_.iloc[index,0], model.equations_.iloc[index,1], model.equations_.iloc[index,2], f"${latex(model.equations_.iloc[index,4])}$", f"{endtime - starttime}"])
     plt.plot(seedval,endtime - starttime,'o',color='red',label="Turbo")
