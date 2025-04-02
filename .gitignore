@@ -6,3 +6,4 @@ __pycache__/
 *.key
 *.pptx
 *.DS_Store
+*.bak
