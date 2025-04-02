@@ -1,8 +1,4 @@
 # Laser Wakefield Accelerator
-<<<<<<< HEAD
-=======
-# taskset --cpu-list 0-3 screen python-jl LWFA1D.py to run on 4 cores
->>>>>>> refs/remotes/origin/main
 
 import sympy
 import pandas as pd
@@ -15,14 +11,12 @@ import time
 from mdutils.mdutils import MdUtils
 plt.rcParams['text.usetex'] = True
 
-<<<<<<< HEAD
 # Reading TwoStream data - All (1000) lines
 inputs = pd.read_csv("/home/estevao/GoLP/datasets/inputs.csv", header=None, skiprows=[0])
 inputs.columns = ["F","E_f","v","x","F_x","F_xx","E_x","E_xx","F_u","F_uu"]
 inputsmean = inputs.mean()
 normalizedinputs = inputs-inputsmean
 targets = pd.read_csv("/home/estevao/GoLP/datasets/target.csv", header=None)
-=======
 mdFile = MdUtils(file_name='LWFA1DAnalysis', title='Laser Wakefield Accelerator Data Analysis')
 
 # Reading TwoStream data - All (1000) lines
@@ -117,4 +111,3 @@ mdFile.new_line()
 mdFile.new_table(columns=len(analysis.columns), rows=len(analysis)+1, text=np.concatenate((analysis.columns.to_numpy().ravel(),analysis.to_numpy().ravel())), text_align='center')
 
 mdFile.create_md_file()
->>>>>>> refs/remotes/origin/main
