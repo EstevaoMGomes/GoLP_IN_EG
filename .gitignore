@@ -3,3 +3,6 @@ __pycache__/
 
 *.pkl
 *.bkup
+*.key
+*.pptx
+*.DS_Store
