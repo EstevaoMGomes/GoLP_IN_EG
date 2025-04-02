@@ -4,297 +4,394 @@ from matplotlib import pyplot as plt
 import pysr
 from sklearn.model_selection import train_test_split
 import os
-import time
+from time import time
 from mdutils.mdutils import MdUtils
 from sympy import latex
 
 plt.rcParams['text.usetex'] = True
 
-
-seed = np.array([1,2,3,4,5,6,7,8,9,10])
-n = np.array([100,1000,10000])
+# Set the seed, number of data points, error, and regression multiplication factors for the analysis
+seed = np.array([1,2,3,4])
+n = np.array([10, 100, 1000, 10000])
 error = np.array([0,0.01,0.1,1])
-mult = np.array([0.5,1,2,4,10])
+mult = np.array([0.5,1,2,4])
 
-def gauss(x,x0,sigma):
-    np.exp(- (x - x0) ** 2 / (2 * sigma ** 2))/(sigma*np.sqrt(2*np.pi))
+# Set the parameters for the Gaussian function
+def gauss(x, mu, sigma):
+    return np.exp(-(x-mu)**2 / (2*sigma**2)) / (sigma*np.sqrt(2*np.pi))
+mu = 0.5
+sigma = 0.1
 
-x0 = 1
-sigma = 0.3
+# Create a folder for results
+folder = "results/gaussian/"
+path = folder + "seed/"
+os.makedirs(path, exist_ok=True)
 
-mdFile = MdUtils(file_name='data/artifitial/Analysis', title='Artifitial Data Analysis')
-
-try:
-    os.mkdir("data/artifitial/seed")
-except:
-    pass
-
+# Create a new Markdown file
+mdFile = MdUtils(file_name= folder + 'analysis', title='Gaussian Data Analysis')
 mdFile.new_header(level=1, title='Seed Analysis')
+tableseeds= ["Turbo", "Denoise", "Seed", "Complexity", "Loss", "Score" ,"Best Fit", "Time"]
 
-tableseeds= ["Turbo","Denoise","Seed", "Complexity", "Loss", "Score" ,"Best Fit", "Time"]
+# Creating data
+np.random.seed(42) # Set the random seed for data reproducibility
+data = np.linspace(0, 1, 1000)
 
-for seedval in seed:
-    np.random.seed(1)
-    X = 2 * np.random.rand(1000,2)
-    y=np.zeros(1000)
-    for index in range(1000):
-            y[index] = np.exp(-(X[index,0] - x0) ** 2 / (2 * sigma ** 2))/(sigma*np.sqrt(2*np.pi))*(1 + np.random.uniform(-0.01,0.01))
-            #y[index] = gauss(X[index,0],x0,sigma)*(1 + np.random.uniform(-0.01,0.01))
-    np.random.seed(seedval)
-    model = pysr.PySRRegressor(
+# Creating models
+normal_model = pysr.PySRRegressor(
     niterations=50,
     populations=12,
     binary_operators=["+", "*","-", "/"],
     unary_operators=["exp"],
-    equation_file=f"data/artifitial/seed/{seedval}.csv",
-    model_selection="score",)
+    output_directory = path + "normal/",
+    model_selection="best",)
 
-    starttime = time.time()
-    model.fit(X, y)
-    endtime = time.time()
+turbo_model = pysr.PySRRegressor(
+    niterations=50,
+    populations=12,
+    binary_operators=["+", "*","-", "/"],
+    unary_operators=["exp"],
+    output_directory = path + "turbo/",
+    model_selection="best",
+    turbo=True,)
 
-    if seedval == 1:
-        best_idx = model.equations_.query(
-            f"loss < {2 * model.equations_.loss.min()}"
+denoise_model = pysr.PySRRegressor(
+    niterations=50,
+    populations=12,
+    binary_operators=["+", "*","-", "/"],
+    unary_operators=["exp"],
+    output_directory = path + "denoise/",
+    model_selection="best",
+    denoise=True,)
+
+plt.figure(figsize=(7, 4))
+
+for seed_idx, seed_val in enumerate(seed):
+    expected = gauss(data, mu, sigma) + np.random.uniform(-0.1, 0.1, size=1000)
+    
+    # Set the random seed for PySR
+    np.random.seed(seed_val)
+
+    # Fit the model to the data before measuring time to compile first
+    if seed_idx == 0: normal_model.fit(data[:, np.newaxis], expected)
+    # Measure the time taken to fit the model
+    start = time()
+    normal_model.fit(data[:, np.newaxis], expected)
+    end = time()
+
+    if seed_idx == 0:
+        best_idx = normal_model.equations_.query(
+            f"loss < {2 * normal_model.equations_.loss.min()}"
         ).score.idxmax()
 
         # Plotting the data
-        fig, ax1 = plt.subplots()
-        ax1.plot(X[:,0], y, label = "$Data$" )
-        ax1.set_xlabel("x")
-        ax1.set_ylabel("y")
-        ax2 = ax1.twinx()
-        ax2.plot(X[:,0], model.predict(X, index=best_idx),'r', label = "$Fit$" , alpha = 0.8)
-        ax2.set_ylabel("")
-        ax2.set_ylim(0,2)
-        plt.title("Artifitial Data Fit")
+        plt.figure(figsize=(7, 4))
+        plt.plot(data, expected, label = "$Data$" )
+        plt.plot(data, normal_model.predict(data[:, np.newaxis], index=best_idx), 'r', label = "Fit" , alpha = 0.8)
+        plt.title("Gaussian Data Fit")
+        plt.xlabel("x")
+        plt.ylabel("y")
+        plt.legend()
         plt.grid(True)
-        fig.legend(loc = (0.75,0.70))
-        fig.tight_layout()
-        plt.savefig("ArtifitialFit.png")
+        plt.savefig(path + f"seed_fit.pdf")
         plt.close()
-        plt.clf()
+
+    maxscore=0
+    for i, score in enumerate(normal_model.equations_.score):
+        if score > maxscore:
+            maxscore = score
+            index = i
+
+    # Append the results to markdown table
+    tableseeds.extend(["False", "False", seed_val, normal_model.equations_.iloc[index,0], normal_model.equations_.iloc[index,1], normal_model.equations_.iloc[index,2], f"${latex(normal_model.equations_.iloc[index,4])}$", f"{end - start}"])
     
-    print(X.iloc[:,0].values)
+    # Plotting the data
+    if seed_idx == 0:
+        plt.bar(seed_val - 0.2 , end - start, width=0.2, color='black', label="Normal", edgecolor='black')
+    plt.bar(seed_val - 0.2 , end - start, width=0.2, color='black', edgecolor='black')
+
+    # Fit the model to the data before measuring time to compile first
+    if seed_idx == 0: turbo_model.fit(data[:, np.newaxis], expected)
+    # Measure the time taken to fit the model
+    start = time()
+    turbo_model.fit(data[:, np.newaxis], expected)
+    end = time()
+
+    if seed_idx == 0:
+        best_idx = turbo_model.equations_.query(
+            f"loss < {2 * turbo_model.equations_.loss.min()}"
+        ).score.idxmax()
+
+        # Plotting the data
+        plt.figure(figsize=(7, 4))
+        plt.plot(data, expected, label = "$Data$" )
+        plt.plot(data, turbo_model.predict(data[:, np.newaxis], index=best_idx), 'r', label = "Fit" , alpha = 0.8)
+        plt.title("Gaussian Data Fit")
+        plt.xlabel("x")
+        plt.ylabel("y")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(path + f"seed_turbo_fit.pdf")
+        plt.close()
 
     maxscore=0
-    for i, score in enumerate(model.equations_.score):
-        if score > maxscore:
-            maxscore= score
-            index = i
-
-    tableseeds.extend(["False", "False", seedval,model.equations_.iloc[index,0], model.equations_.iloc[index,1], model.equations_.iloc[index,2], f"${latex(model.equations_.iloc[index,4])}$", f"{endtime - starttime}"])
-    plt.plot(seedval,endtime - starttime,'o',color='black')
-
-    np.random.seed(seedval)
-    model = pysr.PySRRegressor(
-    niterations=50,
-    populations=12,
-    binary_operators=["+", "*","-", "/"],
-    unary_operators=["exp"],
-    equation_file=f"data/artifitial/seed/{seedval}turbo.csv",
-    model_selection="score",
-    turbo=True,)
-
-    starttime = time.time()
-    model.fit(X, y)
-    endtime = time.time()
-
-    maxscore=0
-    for i, score in enumerate(model.equations_.score):
+    for i, score in enumerate(turbo_model.equations_.score):
         if score > maxscore:
             maxscore= score
             index = i
     
+    # Append the results to markdown table
+    tableseeds.extend(["True", "False", seed_val, turbo_model.equations_.iloc[index,0], turbo_model.equations_.iloc[index,1], turbo_model.equations_.iloc[index,2], f"${latex(turbo_model.equations_.iloc[index,4])}$", f"{end - start}"])
+    
+    if seed_idx == 0:
+        plt.bar(seed_val , end - start, width=0.2, color='red', label="Turbo", edgecolor='black')
+    plt.bar(seed_val , end - start, width=0.2, color='red', edgecolor='black')
 
-    tableseeds.extend(["True", "False", seedval,model.equations_.iloc[index,0], model.equations_.iloc[index,1], model.equations_.iloc[index,2], f"${latex(model.equations_.iloc[index,4])}$", f"{endtime - starttime}"])
-    plt.plot(seedval,endtime - starttime,'o',color='red',label="Turbo")
+    # Measure the time taken to fit the model
+    start = time()
+    denoise_model.fit(data[:, np.newaxis], expected)
+    end = time()
 
-    np.random.seed(seedval)
-    model = pysr.PySRRegressor(
-    niterations=50,
-    populations=12,
-    binary_operators=["+", "*","-", "/"],
-    unary_operators=["exp"],
-    equation_file=f"data/artifitial/seed/{seedval}denoise.csv",
-    model_selection="score",
-    turbo=True,)
+    if seed_idx == 0:
+        best_idx = denoise_model.equations_.query(
+            f"loss < {2 * denoise_model.equations_.loss.min()}"
+        ).score.idxmax()
 
-    starttime = time.time()
-    model.fit(X, y)
-    endtime = time.time()
-
+        # Plotting the data
+        plt.figure(figsize=(7, 4))
+        plt.plot(data, expected, label = "$Data$" )
+        plt.plot(data, denoise_model.predict(data[:, np.newaxis], index=best_idx), 'r', label = "Fit" , alpha = 0.8)
+        plt.title("Gaussian Data Fit")
+        plt.xlabel("x")
+        plt.ylabel("y")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(path + f"seed_denoise_fit.pdf")
+        plt.close()
+    
     maxscore=0
-    for i, score in enumerate(model.equations_.score):
+    for i, score in enumerate(denoise_model.equations_.score):
         if score > maxscore:
             maxscore= score
             index = i
 
-    tableseeds.extend(["False", "True", seedval,model.equations_.iloc[index,0], model.equations_.iloc[index,1], model.equations_.iloc[index,2], f"${latex(model.equations_.iloc[index,4])}$", f"{endtime - starttime}"])
-    plt.plot(seedval,endtime - starttime,'o',color='green',label="Denoise")
+    tableseeds.extend(["False", "True", seed_val, denoise_model.equations_.iloc[index,0], denoise_model.equations_.iloc[index,1], denoise_model.equations_.iloc[index,2], f"${latex(denoise_model.equations_.iloc[index,4])}$", f"{end - start}"])
+    
+    if seed_idx == 0:
+        plt.bar(seed_val+0.2 , end - start, width=0.2, color='green', label="Denoise", edgecolor='black')
+    plt.bar(seed_val+0.2 , end - start, width=0.2, color='green', edgecolor='black')
 
 mdFile.new_line()
 mdFile.new_paragraph("The standard parameter used are: 50 iterations, 12 populations, 1000 data points and error 0.01")
-mdFile.new_table(columns=8, rows=(len(seed)+1)*3, text=tableseeds, text_align='center')
+mdFile.new_table(columns=8, rows=len(seed)*3+1, text=tableseeds, text_align='center')
+
 plt.xlabel("Seed number")
 plt.ylabel("Time (s)")
 plt.legend()
+plt.xticks(seed, seed)
 plt.title("Time needed to fit the model for different seed values")
-plt.show()
-plt.savefig("data/artifitial/seed/time_seed.png")
+plt.savefig(path + "seed_time.pdf")
 plt.close()
 
+###################################  Analysis of the error  ###################################
 
-try:
-    os.mkdir("data/artifitial/error")
-except:
-    pass
+# Create a folder for error analysis
+path = folder + "error/"
+os.makedirs(path, exist_ok=True)
 
+# Create a new paragraph in the Markdown file
 mdFile.new_header(level=1, title='Error Analysis')
+tableerrors= ["Error", "Complexity", "Loss", "Score", "Best Fit", "Time"]
 
-tableerrors= ["Error", "Complexity", "Loss", "Score" ,"Best Fit", "Time"]
+# Set the random seed for PySR
+np.random.seed(42)
 
-for errorval in error:
-    starttime = time.time()
-    np.random.seed(1)
-    X = 2 * np.random.rand(1000,2)
-    y=np.zeros(1000)
-    for index in range(1000):
-            y[index] = np.exp(-(X[index,0] - x0) ** 2 / (2 * sigma ** 2))/(sigma*np.sqrt(2*np.pi))*(1 + np.random.uniform(-errorval,errorval))
-            #y[index] = gauss(X[index,0],x0,sigma)*(1 + np.random.uniform(-errorval,errorval))
-    
-    model = pysr.PySRRegressor(
+# Creating model
+turbo_model = pysr.PySRRegressor(
     niterations=50,
     populations=12,
     binary_operators=["+", "*","-", "/"],
     unary_operators=["exp"],
-    equation_file=f"data/artifitial/error/{errorval}.csv",
-    model_selection="score",
-    denoise=True,)
+    output_directory = path,
+    model_selection="best",
+    turbo=True,)
 
-    model.fit(X, y)
+plt.figure(figsize=(7, 4))
 
-    endtime = time.time()
+for error_idx, error_val in enumerate(error):
+    expected = gauss(data, mu, sigma) + np.random.uniform(-error_val, error_val, size=1000)
+
+    start = time()
+    turbo_model.fit(data[:, np.newaxis], expected)
+    end = time()
+
+    best_idx = turbo_model.equations_.query(
+        f"loss < {2 * turbo_model.equations_.loss.min()}"
+    ).score.idxmax()
+    
+    # Plotting the data
+    plt.figure(figsize=(7, 4))
+    plt.plot(data, expected, label = "$Data$")
+    plt.plot(data, turbo_model.predict(data[:, np.newaxis], index=best_idx), 'r', label = "Fit" , alpha = 0.8)
+    plt.title("Gaussian Data Fit")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(path + f"error_{error_val}_fit.pdf")
+    plt.close()
 
     maxscore=0
-    for i, score in enumerate(model.equations_.score):
+    for i, score in enumerate(turbo_model.equations_.score):
         if score > maxscore:
             maxscore= score
             index = i
 
-    tableerrors.extend([errorval,model.equations_.iloc[index,0], model.equations_.iloc[index,1], model.equations_.iloc[index,2], f"${latex(model.equations_.iloc[index,4])}$", f"{endtime - starttime}"])
-    plt.plot(errorval,endtime - starttime,'o',color='black')
+    tableerrors.extend([error_val, turbo_model.equations_.iloc[index,0], turbo_model.equations_.iloc[index,1], turbo_model.equations_.iloc[index,2], f"${latex(turbo_model.equations_.iloc[index,4])}$", f"{end - start}"])
+    plt.bar(error_idx, end - start, color='red', edgecolor='black')
 
 mdFile.new_line()
 mdFile.new_paragraph("The standard parameter used are: 50 iterations, 12 populations, 1000 data points, seed 1 and denoise True")
 mdFile.new_table(columns=6, rows=len(error)+1, text=tableerrors, text_align='center')
 
-plt.xscale('log')
 plt.xlabel("Error")
 plt.ylabel("Time (s)")
+plt.xticks(range(len(error)), error)
 plt.title("Time needed to fit the model for different error values")
-plt.show()
-plt.savefig("data/artifitial/error/time_error.png")
+plt.savefig(path + "error_time.pdf")
 plt.close()
 
+###################################  Analysis of the regression  ###################################
 
-try:
-    os.mkdir("data/artifitial/regression")
-except:
-    pass
+# Create a folder for error analysis
+path = folder + "regression/"
+os.makedirs(path, exist_ok=True)
 
+# Create a new paragraph in the Markdown file
 mdFile.new_header(level=1, title='Regression Analysis')
-
 tableregression= ["50 Iterations, 12 Populations", "Complexity", "Loss", "Score", "Best Fit", "Time"]
 
+# Set the random seed for PySR
+np.random.seed(42)
 
-for multval in mult:
-    starttime = time.time()
-    np.random.seed(1)
-    X = 2 * np.random.rand(1000,2)
-    y=np.zeros(1000)
-    for index in range(1000):
-            y[index] = np.exp(-(X[index,0] - x0) ** 2 / (2 * sigma ** 2))/(sigma*np.sqrt(2*np.pi))*(1 + np.random.uniform(-0.01,0.01))
-            #y[index] = gauss(X[index,0],x0,sigma)*(1 + np.random.uniform(-0.01,0.01))
-    model = pysr.PySRRegressor(
-    niterations=50*multval,
-    populations=12*multval,
-    binary_operators=["+", "*","-", "/"],
-    unary_operators=["exp"],
-    equation_file=f"data/artifitial/regression/x{multval}.csv",
-    model_selection="score",
-    turbo=True,)
+plt.figure(figsize=(7, 4))
 
-    model.fit(X, y)
+for mult_idx, mult_val in enumerate(mult):
+    expected = gauss(data, mu, sigma) + np.random.uniform(-0.1, 0.1, size=1000)
+    
+    # Creating model
+    turbo_model = pysr.PySRRegressor(
+        niterations=50*mult_val,
+        populations=12*mult_val,
+        binary_operators=["+", "*","-", "/"],
+        unary_operators=["exp"],
+        output_directory = path,
+        model_selection="best",
+        turbo=True,)
 
-    endtime = time.time()
+    start = time()
+    turbo_model.fit(data[:, np.newaxis], expected)
+    end = time()
+
+    best_idx = turbo_model.equations_.query(
+        f"loss < {2 * turbo_model.equations_.loss.min()}"
+    ).score.idxmax()
+    
+    # Plotting the data
+    plt.figure(figsize=(7, 4))
+    plt.plot(data, expected, label = "$Data$")
+    plt.plot(data, turbo_model.predict(data[:, np.newaxis], index=best_idx), 'r', label = "Fit" , alpha = 0.8)
+    plt.title("Gaussian Data Fit")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(path + f"mult_{mult_val}_fit.pdf")
+    plt.close()
 
     maxscore=0
-    for i, score in enumerate(model.equations_.score):
+    for i, score in enumerate(turbo_model.equations_.score):
         if score > maxscore:
             maxscore= score
             index = i
 
-    tableregression.extend([f"x{multval}",model.equations_.iloc[index,0], model.equations_.iloc[index,1], model.equations_.iloc[index,2], f"${latex(model.equations_.iloc[index,4])}$", f"{endtime - starttime}"])
-    plt.plot(multval,endtime - starttime,'o',color='black')
+    tableregression.extend([f"x{mult_val}", turbo_model.equations_.iloc[index,0], turbo_model.equations_.iloc[index,1], turbo_model.equations_.iloc[index,2], f"${latex(turbo_model.equations_.iloc[index,4])}$", f"{end - start}"])
+    plt.bar(mult_idx, end - start, color='red', edgecolor='black')
 
 mdFile.new_line()
 mdFile.new_table(columns=6, rows=len(mult)+1, text=tableregression, text_align='center')
 plt.xlabel("Multiplication number")
 plt.ylabel("Time (s)")
+plt.xticks(range(len(mult)), mult)
 plt.title("Time needed to fit the model for different multiplication values\nof 50 iterations and 12 populations")
-plt.show()
-plt.savefig("data/artifitial/regression/time_mult.png")
+plt.savefig(path + "mult_time.pdf")
 plt.close()
 
+###################################  Analysis of the data points  ###################################
 
-try:
-    os.mkdir("data/artifitial/datapoints")
-except:
-    pass
+# Create a folder for error analysis
+path = folder + "data_points/"
+os.makedirs(path, exist_ok=True)
 
+# Create a new paragraph in the Markdown file
 mdFile.new_header(level=1, title='Number of Data Points Analysis')
-
 tabledatapoints= ["Number of Data Points", "Complexity", "Loss", "Score", "Best Fit", "Time"]
-     
-for ndp in n:
-    starttime = time.time()
-    np.random.seed(1)
-    X = 2 * np.random.rand(ndp,2)
-    y=np.zeros(ndp)
-    for index in range(ndp):
-            y[index] = np.exp(-(X[index,0] - x0) ** 2 / (2 * sigma ** 2))/(sigma*np.sqrt(2*np.pi))*(1 + np.random.uniform(-0.01,0.01))
-            #y[index] = gauss(X[index,0],x0,sigma)*(1 + np.random.uniform(-0.01,0.01))
-    model = pysr.PySRRegressor(
+
+# Set the random seed for PySR
+np.random.seed(42)
+
+# Creating model
+turbo_model = pysr.PySRRegressor(
     niterations=50,
     populations=12,
     binary_operators=["+", "*","-", "/"],
     unary_operators=["exp"],
-    equation_file=f"data/artifitial/datapoints/{ndp}.csv",
-    model_selection="score",
+    output_directory = path,
+    model_selection="best",
     turbo=True,)
+
+plt.figure(figsize=(7, 4))
+
+for ndp_idx, ndp in enumerate(n):
+    data = np.linspace(0, 1, ndp)
+    expected = gauss(data, mu, sigma) + np.random.uniform(-0.1, 0.1, size=ndp)
     
-    model.fit(X, y)
+    start = time()
+    turbo_model.fit(data[:, np.newaxis], expected)
+    end = time()
+
+    best_idx = turbo_model.equations_.query(
+        f"loss < {2 * turbo_model.equations_.loss.min()}"
+    ).score.idxmax()
     
-    endtime = time.time()
+    # Plotting the data
+    plt.figure(figsize=(7, 4))
+    plt.plot(data, expected, label = "$Data$")
+    plt.plot(data, turbo_model.predict(data[:, np.newaxis], index=best_idx), 'r', label = "Fit" , alpha = 0.8)
+    plt.title("Gaussian Data Fit")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(path + f"ndp_{ndp}_fit.pdf")
+    plt.close()
 
     maxscore=0
-    for i, score in enumerate(model.equations_.score):
+    for i, score in enumerate(turbo_model.equations_.score):
         if score > maxscore:
             maxscore= score
             index = i
 
-    tabledatapoints.extend([ndp,model.equations_.iloc[index,0], model.equations_.iloc[index,1], model.equations_.iloc[index,2], f"${latex(model.equations_.iloc[index,4])}$", f"{endtime - starttime}"])
-    plt.plot(ndp,endtime - starttime,'o',color='black')
+    tabledatapoints.extend([ndp, turbo_model.equations_.iloc[index,0], turbo_model.equations_.iloc[index,1], turbo_model.equations_.iloc[index,2], f"${latex(turbo_model.equations_.iloc[index,4])}$", f"{end - start}"])
+    plt.bar(ndp_idx, end - start, color='red', edgecolor='black')
 
 mdFile.new_line()
 mdFile.new_table(columns=6, rows=len(n)+1, text=tabledatapoints, text_align='center')
-plt.xscale('log')
+
 plt.xlabel("Number of data points")
 plt.ylabel("Time (s)")
+plt.xticks(range(len(n)), n)
 plt.title("Time needed to fit the model for different number of data points")
-plt.show()
-plt.savefig("data/artifitial/datapoints/time_ndp.png")
+plt.savefig(path + "ndp_time.pdf")
 plt.close()
 
 
