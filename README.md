@@ -32,8 +32,8 @@ The goal of this project was to apply symbolic regression techniques to plasma d
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/EstevaoMGomes/GoLP.git
-   cd GoLP
+   git clone https://github.com/EstevaoMGomes/GoLP_IN_EG.git
+   cd GoLP_IN_EG
    ```
 2. Install the required dependencies:
     ```bash
